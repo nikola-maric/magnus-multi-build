@@ -55,6 +55,7 @@ jobs:
           export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu
           export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          export RB_SYS_CARGO_TARGET=aarch64-unknown-linux-gnu
           bundle exec rake compile
         else
           bundle exec rake compile
