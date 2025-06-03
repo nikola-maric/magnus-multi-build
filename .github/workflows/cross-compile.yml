@@ -52,22 +52,19 @@ jobs:
     - name: Cross-compile gem
       run: |
         if [ "${{ matrix.platform.target }}" = "aarch64-linux" ]; then
+          export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu
           export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          bundle exec rake native:aarch64-linux
+          bundle exec rake compile
         else
-          bundle exec rake native:x86_64-linux
+          bundle exec rake compile
         fi
-    
-    - name: Build gem
-      run: |
-        bundle exec rake gem:${{ matrix.platform.target }}
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: gem-${{ matrix.platform.target }}
-        path: pkg/*.gem
+        name: so-${{ matrix.platform.target }}
+        path: lib/magnus_multi_build/*.so
         retention-days: 30
 
   create-pr:
@@ -89,16 +86,22 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        branch_name="compiled-gems-$(date +%Y%m%d-%H%M%S)"
+        branch_name="compiled-binaries-$(date +%Y%m%d-%H%M%S)"
         git checkout -b $branch_name
         
-        # Copy compiled gems to a release directory
-        mkdir -p release/gems
-        find compiled-gems -name "*.gem" -exec cp {} release/gems/ \;
+        # Copy compiled .so files to architecture-specific directories
+        mkdir -p lib/magnus_multi_build/x86_64-linux
+        mkdir -p lib/magnus_multi_build/aarch64-linux
         
-        # Add gems to git
-        git add release/gems/
-        git commit -m "Add pre-compiled gems for multiple architectures
+        # Copy x86_64 binaries
+        find compiled-gems/so-x86_64-linux -name "*.so" -exec cp {} lib/magnus_multi_build/x86_64-linux/ \; 2>/dev/null || true
+        
+        # Copy aarch64 binaries  
+        find compiled-gems/so-aarch64-linux -name "*.so" -exec cp {} lib/magnus_multi_build/aarch64-linux/ \; 2>/dev/null || true
+        
+        # Add binaries to git
+        git add lib/magnus_multi_build/
+        git commit -m "Add pre-compiled native binaries for multiple architectures
 
         - x86_64-linux
         - aarch64-linux
