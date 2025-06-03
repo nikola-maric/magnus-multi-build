@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "magnus_multi_build"
+
+require "irb"
+IRB.start(__FILE__)

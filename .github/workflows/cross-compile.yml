@@ -1,0 +1,132 @@
+name: Cross-compile Native Gem
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_pr:
+        description: 'Create PR with compiled gems'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  cross-compile:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-linux
+            ruby: "2.7"
+          - os: ubuntu-latest
+            target: aarch64-linux
+            ruby: "2.7"
+        
+    runs-on: ${{ matrix.platform.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.platform.ruby }}
+        bundler-cache: true
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+    
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.85.0
+    
+    - name: Install cross-compilation tools
+      if: matrix.platform.target == 'aarch64-linux'
+      run: |
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+        rustup target add aarch64-unknown-linux-gnu
+    
+    - name: Cross-compile gem
+      run: |
+        if [ "${{ matrix.platform.target }}" = "aarch64-linux" ]; then
+          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          bundle exec rake native:aarch64-linux
+        else
+          bundle exec rake native:x86_64-linux
+        fi
+    
+    - name: Build gem
+      run: |
+        bundle exec rake gem:${{ matrix.platform.target }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: gem-${{ matrix.platform.target }}
+        path: pkg/*.gem
+        retention-days: 30
+
+  create-pr:
+    needs: cross-compile
+    runs-on: ubuntu-latest
+    if: github.event.inputs.create_pr == 'true'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: compiled-gems
+    
+    - name: Create release branch
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        branch_name="compiled-gems-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b $branch_name
+        
+        # Copy compiled gems to a release directory
+        mkdir -p release/gems
+        find compiled-gems -name "*.gem" -exec cp {} release/gems/ \;
+        
+        # Add gems to git
+        git add release/gems/
+        git commit -m "Add pre-compiled gems for multiple architectures
+
+        - x86_64-linux
+        - aarch64-linux
+        
+        Built from commit: ${{ github.sha }}"
+        
+        git push origin $branch_name
+        echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ env.BRANCH_NAME }}
+        title: "Add pre-compiled gems for multi-architecture support"
+        body: |
+          ## Summary
+          This PR adds pre-compiled native gems for multiple architectures:
+          
+          - ✅ x86_64-linux (Intel/AMD 64-bit)
+          - ✅ aarch64-linux (ARM 64-bit)
+          
+          ## Testing
+          - [ ] Test x86_64-linux gem in Docker container
+          - [ ] Test aarch64-linux gem in ARM Docker container
+          
+          ## Files Added
+          - `release/gems/` - Contains pre-compiled gem files
+          
+          Built from commit: ${{ github.sha }}
+        draft: false

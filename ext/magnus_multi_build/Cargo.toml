@@ -1,0 +1,11 @@
+[package]
+name = "magnus_multi_build"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = "0.7"
+rb-sys = "0.9.102"
