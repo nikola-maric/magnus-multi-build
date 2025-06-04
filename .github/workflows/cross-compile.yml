@@ -1,136 +1,144 @@
-name: Cross-compile Native Gem
+name: Cross-Compile Native Extensions
 
 on:
   workflow_dispatch:
     inputs:
-      create_pr:
-        description: 'Create PR with compiled gems'
-        required: true
-        default: false
-        type: boolean
+      branch_name:
+        description: 'Branch name for the PR (optional)'
+        required: false
+        default: 'cross-compile-binaries'
+      pr_title:
+        description: 'Pull request title (optional)'
+        required: false
+        default: 'Add cross-compiled native extensions'
 
 jobs:
   cross-compile:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - os: ubuntu-latest
-            target: x86_64-linux
-            ruby: "2.7"
-          - os: ubuntu-latest
-            target: aarch64-linux
-            ruby: "2.7"
-        
-    runs-on: ${{ matrix.platform.os }}
+    runs-on: ubuntu-22.04
     
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: ${{ matrix.platform.ruby }}
+        ruby-version: '2.7.8'
         bundler-cache: true
-    
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
     - name: Install dependencies
+      run: bundle install
+      
+    - name: Make cross_compile.sh executable
+      run: chmod +x cross_compile.sh
+      
+    - name: Run cross-compilation
+      run: ./cross_compile.sh
+      
+    - name: Check for compiled binaries
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential
-    
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: 1.85.0
-    
-    - name: Install cross-compilation tools
-      if: matrix.platform.target == 'aarch64-linux'
-      run: |
-        sudo apt-get install -y gcc-aarch64-linux-gnu
-        rustup target add aarch64-unknown-linux-gnu
-    
-    - name: Cross-compile gem
-      run: |
-        if [ "${{ matrix.platform.target }}" = "aarch64-linux" ]; then
-          export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu
-          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
-          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          export RB_SYS_CARGO_TARGET=aarch64-unknown-linux-gnu
-          bundle exec rake compile
-        else
-          bundle exec rake compile
-        fi
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: so-${{ matrix.platform.target }}
-        path: lib/magnus_multi_build/*.so
-        retention-days: 30
-
-  create-pr:
-    needs: cross-compile
-    runs-on: ubuntu-latest
-    if: github.event.inputs.create_pr == 'true'
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: compiled-gems
-    
-    - name: Create release branch
+        echo "Checking for compiled binaries..."
+        find lib/magnus_multi_build -name "*.so" -type f
+        
+    - name: Configure Git
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        branch_name="compiled-binaries-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b $branch_name
         
-        # Copy compiled .so files to architecture-specific directories
-        mkdir -p lib/magnus_multi_build/x86_64-linux
-        mkdir -p lib/magnus_multi_build/aarch64-linux
+    - name: Create feature branch
+      run: |
+        BRANCH_NAME="${{ github.event.inputs.branch_name }}"
+        if [ -z "$BRANCH_NAME" ]; then
+          BRANCH_NAME="cross-compile-binaries-$(date +%Y%m%d-%H%M%S)"
+        fi
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+        git checkout -b "$BRANCH_NAME"
         
-        # Copy x86_64 binaries
-        find compiled-gems/so-x86_64-linux -name "*.so" -exec cp {} lib/magnus_multi_build/x86_64-linux/ \; 2>/dev/null || true
+    - name: Add compiled binaries
+      run: |
+        git add lib/magnus_multi_build/*/magnus_multi_build.so
         
-        # Copy aarch64 binaries  
-        find compiled-gems/so-aarch64-linux -name "*.so" -exec cp {} lib/magnus_multi_build/aarch64-linux/ \; 2>/dev/null || true
+    - name: Check if there are changes to commit
+      id: verify-changed-files
+      run: |
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+          echo "changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "Changes detected"
+          echo "changes=true" >> $GITHUB_OUTPUT
+        fi
         
-        # Add binaries to git
-        git add lib/magnus_multi_build/
-        git commit -m "Add pre-compiled native binaries for multiple architectures
-
-        - x86_64-linux
-        - aarch64-linux
+    - name: Commit changes
+      if: steps.verify-changed-files.outputs.changes == 'true'
+      run: |
+        git commit -m "Add cross-compiled native extensions for multiple architectures
         
-        Built from commit: ${{ github.sha }}"
+        - Built for x86_64-linux and aarch64-linux
+        - Generated using cross_compile.sh with rb-sys-dock
+        - Ready for multi-platform gem distribution
         
-        git push origin $branch_name
-        echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
-    
+        🤖 Generated with GitHub Actions"
+        
+    - name: Push branch
+      if: steps.verify-changed-files.outputs.changes == 'true'
+      run: |
+        git push origin "$BRANCH_NAME"
+        
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v6
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ env.BRANCH_NAME }}
-        title: "Add pre-compiled gems for multi-architecture support"
-        body: |
-          ## Summary
-          This PR adds pre-compiled native gems for multiple architectures:
+      if: steps.verify-changed-files.outputs.changes == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        PR_TITLE="${{ github.event.inputs.pr_title }}"
+        if [ -z "$PR_TITLE" ]; then
+          PR_TITLE="Add cross-compiled native extensions"
+        fi
+        
+        gh pr create \
+          --title "$PR_TITLE" \
+          --body "## Summary
+        
+        This PR adds cross-compiled native extensions for multiple architectures:
+        
+        - **x86_64-linux**: Intel/AMD 64-bit Linux
+        - **aarch64-linux**: ARM 64-bit Linux
+        
+        ## Changes
+        
+        - Added \`lib/magnus_multi_build/x86_64-linux/magnus_multi_build.so\`
+        - Added \`lib/magnus_multi_build/aarch64-linux/magnus_multi_build.so\`
+        
+        ## Build Process
+        
+        These binaries were generated using:
+        1. \`cross_compile.sh\` script
+        2. \`rb-sys-dock\` containerized cross-compilation
+        3. Magnus crate for Rust-Ruby bindings
+        
+        ## Testing
+        
+        To test these binaries:
+        
+        \`\`\`bash
+        # For x86_64-linux
+        export MAGNUS_TARGET_ARCH=x86_64-linux
+        ruby -r magnus_multi_build -e \"puts RustStringUtils.reverse('Hello')\"
+        
+        # For aarch64-linux  
+        export MAGNUS_TARGET_ARCH=aarch64-linux
+        ruby -r magnus_multi_build -e \"puts RustStringUtils.reverse('World')\"
+        \`\`\`
+        
+        🤖 Generated with GitHub Actions" \
+          --head "$BRANCH_NAME" \
+          --base main
           
-          - ✅ x86_64-linux (Intel/AMD 64-bit)
-          - ✅ aarch64-linux (ARM 64-bit)
-          
-          ## Testing
-          - [ ] Test x86_64-linux gem in Docker container
-          - [ ] Test aarch64-linux gem in ARM Docker container
-          
-          ## Files Added
-          - `release/gems/` - Contains pre-compiled gem files
-          
-          Built from commit: ${{ github.sha }}
-        draft: false
+    - name: No changes summary
+      if: steps.verify-changed-files.outputs.changes == 'false'
+      run: |
+        echo "::notice::No changes detected. Cross-compilation may have failed or binaries already exist."
+        echo "Check the cross-compilation logs above for details."

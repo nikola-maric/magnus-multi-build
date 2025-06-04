@@ -14,6 +14,8 @@ GEM
     rb_sys (0.9.102)
 
 PLATFORMS
+  x86_64-darwin-19
+  x86_64-darwin-24
   x86_64-linux
 
 DEPENDENCIES
@@ -21,6 +23,7 @@ DEPENDENCIES
   minitest (~> 5.0)
   rake (= 13.0.6)
   rake-compiler (= 1.2.7)
+  rb_sys (= 0.9.102)
 
 BUNDLED WITH
    2.4.14

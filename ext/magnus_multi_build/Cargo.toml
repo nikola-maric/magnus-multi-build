@@ -8,4 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 magnus = "0.7"
-rb-sys = "0.9.102"
+rb-sys = { version = "0.9.102", features = [ "bindgen-rbimpls", "bindgen-deprecated-types", "stable-api-compiled-fallback" ] }
+
+[build-dependencies]
+rb-sys-env = { version = "0.2" }
