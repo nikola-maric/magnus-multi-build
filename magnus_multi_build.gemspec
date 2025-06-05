@@ -29,5 +29,5 @@ Gem::Specification.new do |spec|
   # so we need to comment out this extensions part, because if we didn't we would get "Ignoring magnus_multi_build-0.1.0 because its extensions are not built. Try: gem pristine magnus_multi_build --version 0.1.0" message
   # spec.extensions = ['ext/magnus_multi_build/extconf.rb']
 
-  spec.add_dependency "rb_sys", "0.9.102"
+  spec.add_dependency "rb_sys", "0.9.116"
 end

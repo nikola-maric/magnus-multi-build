@@ -15,6 +15,9 @@ on:
 jobs:
   cross-compile:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        architecture: [x86_64-linux, aarch64-linux]
     
     steps:
     - name: Checkout code
@@ -35,13 +38,40 @@ jobs:
     - name: Make cross_compile.sh executable
       run: chmod +x cross_compile.sh
       
-    - name: Run cross-compilation
-      run: ./cross_compile.sh
+    - name: Run cross-compilation for ${{ matrix.architecture }}
+      run: ./cross_compile.sh ${{ matrix.architecture }}
       
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: magnus_multi_build-${{ matrix.architecture }}
+        path: lib/magnus_multi_build/${{ matrix.architecture }}/magnus_multi_build.so
+
+  create-pr:
+    needs: cross-compile
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Organize binaries
+      run: |
+        mkdir -p lib/magnus_multi_build/x86_64-linux
+        mkdir -p lib/magnus_multi_build/aarch64-linux
+        cp artifacts/magnus_multi_build-x86_64-linux/magnus_multi_build.so lib/magnus_multi_build/x86_64-linux/
+        cp artifacts/magnus_multi_build-aarch64-linux/magnus_multi_build.so lib/magnus_multi_build/aarch64-linux/
+        
     - name: Check for compiled binaries
       run: |
         echo "Checking for compiled binaries..."
         find lib/magnus_multi_build -name "*.so" -type f
+        ls -la lib/magnus_multi_build/*/
         
     - name: Configure Git
       run: |
@@ -77,7 +107,7 @@ jobs:
       run: |
         git commit -m "Add cross-compiled native extensions for multiple architectures
         
-        - Built for x86_64-linux and aarch64-linux
+        - Built for x86_64-linux and aarch64-linux in parallel
         - Generated using cross_compile.sh with rb-sys-dock
         - Ready for multi-platform gem distribution
         
@@ -115,7 +145,7 @@ jobs:
         ## Build Process
         
         These binaries were generated using:
-        1. \`cross_compile.sh\` script
+        1. \`cross_compile.sh\` script with parallel builds
         2. \`rb-sys-dock\` containerized cross-compilation
         3. Magnus crate for Rust-Ruby bindings
         

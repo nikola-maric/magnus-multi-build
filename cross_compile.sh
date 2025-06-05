@@ -3,7 +3,6 @@
 set -euo pipefail
 
 # Configuration
-ARCHITECTURES=("x86_64-linux" "aarch64-linux")
 LIB_DIR="lib/magnus_multi_build"
 
 # Colors for output
@@ -66,7 +65,15 @@ cross_compile_arch() {
 
 # Main execution
 main() {
-    log "Starting cross-compilation for all architectures"
+    # Check if specific architecture was passed as argument
+    if [[ $# -eq 0 ]]; then
+        error "Usage: $0 <architecture>"
+        error "Example: $0 x86_64-linux"
+        exit 1
+    fi
+    
+    local target_arch=$1
+    log "Building for architecture: $target_arch"
     
     # Ensure we're in the right directory
     if [[ ! -f "magnus_multi_build.gemspec" ]]; then
@@ -77,41 +84,14 @@ main() {
     # Create base lib directory if it doesn't exist
     mkdir -p "$LIB_DIR"
     
-    # Track success/failure
-    local failed_archs=()
-    local successful_archs=()
-    
-    # Compile for each architecture
-    for arch in "${ARCHITECTURES[@]}"; do
-        log "Processing architecture: $arch"
-        
-        if cross_compile_arch "$arch"; then
-            successful_archs+=("$arch")
-        else
-            failed_archs+=("$arch")
-            error "Failed to build for $arch"
-        fi
-        
-        echo "----------------------------------------"
-    done
-    
-    # Summary
-    log "Cross-compilation completed!"
-    
-    if [[ ${#successful_archs[@]} -gt 0 ]]; then
-        log "✅ Successfully built for: ${successful_archs[*]}"
-    fi
-    
-    if [[ ${#failed_archs[@]} -gt 0 ]]; then
-        error "❌ Failed to build for: ${failed_archs[*]}"
+    # Build for specified architecture
+    if cross_compile_arch "$target_arch"; then
+        log "✅ Successfully built for: $target_arch"
+        log "Binary is located at: $LIB_DIR/$target_arch/magnus_multi_build.so"
+    else
+        error "❌ Failed to build for: $target_arch"
         exit 1
     fi
-    
-    log "All architectures built successfully! 🎉"
-    log "Binaries are located in:"
-    for arch in "${ARCHITECTURES[@]}"; do
-        echo "  - $LIB_DIR/$arch/magnus_multi_build.so"
-    done
 }
 
 # Run main function

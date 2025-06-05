@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     magnus_multi_build (0.1.0)
-      rb_sys (= 0.9.102)
+      rb_sys (= 0.9.116)
 
 GEM
   remote: https://rubygems.org/
@@ -11,7 +11,9 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.7)
       rake
-    rb_sys (0.9.102)
+    rake-compiler-dock (1.9.1)
+    rb_sys (0.9.116)
+      rake-compiler-dock (= 1.9.1)
 
 PLATFORMS
   x86_64-darwin-19
@@ -23,7 +25,7 @@ DEPENDENCIES
   minitest (~> 5.0)
   rake (= 13.0.6)
   rake-compiler (= 1.2.7)
-  rb_sys (= 0.9.102)
+  rb_sys (= 0.9.116)
 
 BUNDLED WITH
    2.4.14
