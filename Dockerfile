@@ -5,9 +5,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-ARG TARGET_ARCH
-ENV MAGNUS_TARGET_ARCH=${TARGET_ARCH}
-
 # Update RubyGems to specific version
 RUN gem update --system 3.4.14
 
@@ -18,6 +15,9 @@ WORKDIR /app
 COPY Gemfile* *.gemspec ./
 COPY lib/magnus_multi_build/version.rb lib/magnus_multi_build/version.rb
 RUN bundle install
+
+ARG TARGET_ARCH
+ENV MAGNUS_TARGET_ARCH=${TARGET_ARCH}
 
 # Copy the rest of the application
 COPY . .

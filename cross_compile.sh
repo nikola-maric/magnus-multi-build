@@ -44,9 +44,9 @@ cross_compile_arch() {
         mkdir -p "$arch_dir"
         log "Created directory: $arch_dir"
         
-        # Copy .so file to architecture-specific directory
-        cp "$LIB_DIR/magnus_multi_build.so" "$arch_dir/"
-        log "Copied magnus_multi_build.so to $arch_dir/"
+        # Move .so file to architecture-specific directory
+        mv "$LIB_DIR/magnus_multi_build.so" "$arch_dir/"
+        log "Moved magnus_multi_build.so to $arch_dir/"
         
         # Verify the file was copied
         if [[ -f "$arch_dir/magnus_multi_build.so" ]]; then
