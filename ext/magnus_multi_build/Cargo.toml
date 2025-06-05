@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 magnus = "0.7"
 rb-sys = { version = "0.9.116", features = [ "bindgen-rbimpls", "bindgen-deprecated-types", "stable-api-compiled-fallback" ] }
-duckdb = { version = "1.2.2", features = ["bundled"] }
+duckdb = { version = "=1.2.2", features = ["bundled"] }
 
 [build-dependencies]
 rb-sys-env = { version = "0.2" }
