@@ -37,9 +37,10 @@ cross_compile_arch() {
         warn "rb-sys-dock command failed, but .so file might still be built"
     }
     
-    # Check if the .so file was created
-    if [[ -f "$LIB_DIR/magnus_multi_build.so" ]]; then
-        log "Found compiled .so file for $arch"
+    # Check if the .so file was created in staging directory
+    staging_so_file="tmp/$arch/stage/lib/magnus_multi_build/magnus_multi_build.so"
+    if [[ -f "$staging_so_file" ]]; then
+        log "Found compiled .so file for $arch at $staging_so_file"
         
         # Create architecture-specific directory
         arch_dir="$LIB_DIR/$arch"
@@ -47,7 +48,7 @@ cross_compile_arch() {
         log "Created directory: $arch_dir"
         
         # Move .so file to architecture-specific directory
-        mv "$LIB_DIR/magnus_multi_build.so" "$arch_dir/"
+        mv "$staging_so_file" "$arch_dir/"
         log "Moved magnus_multi_build.so to $arch_dir/"
         
         # Verify the file was copied
