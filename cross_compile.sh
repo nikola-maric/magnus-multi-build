@@ -33,7 +33,7 @@ cross_compile_arch() {
     
     # Run rb-sys-dock with the command inside the container
     log "Running rb-sys-dock container for $arch with custom command"
-    bundle exec rb-sys-dock --platform "$arch" -- bash -c "bundle install && bundle exec rake compile native:$arch" || {
+    bundle exec rb-sys-dock --platform "$arch" -- bash -c "bundle install && bundle exec rake native:magnus_multi_build:$arch" || {
         warn "rb-sys-dock command failed, but .so file might still be built"
     }
     

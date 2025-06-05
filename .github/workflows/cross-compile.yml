@@ -39,13 +39,13 @@ jobs:
       run: chmod +x cross_compile.sh
       
     - name: Run cross-compilation for ${{ matrix.architecture }}
-      run: ./cross_compile.sh ${{ matrix.architecture }}
+      run: RUBY_CC_VERSION=2.7.8 ./cross_compile.sh ${{ matrix.architecture }}
       
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
       with:
         name: magnus_multi_build-${{ matrix.architecture }}
-        path: lib/magnus_multi_build/${{ matrix.architecture }}/magnus_multi_build.so
+        path: tmp/${{ matrix.architecture }}/stage/lib/magnus_multi_build/magnus_multi_build.so
 
   create-pr:
     needs: cross-compile

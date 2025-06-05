@@ -8,23 +8,6 @@ GEMSPEC = Gem::Specification.load("magnus_multi_build.gemspec") || abort('Could 
 
 Rake::ExtensionTask.new("magnus_multi_build", GEMSPEC) do |ext|
   ext.lib_dir = "lib/magnus_multi_build"
+  ext.cross_compile = true
+  ext.cross_platform = %w[x86_64-linux aarch64-linux]
 end
-
-task :fmt do
-  sh 'cargo', 'fmt'
-end
-
-desc "Build native extension for a given platform (i.e. `rake 'native[x86_64-linux]'`)"
-task :native, [:platform] do |_t, platform:|
-  sh 'bundle', 'exec', 'rb-sys-dock', '--platform', platform, '--build'
-end
-
-task :cargo_test do
-  sh 'cargo test'
-end
-
-task test: %i[ruby_test cargo_test]
-
-task build: :compile
-
-task default: %i[compile test]
