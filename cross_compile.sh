@@ -28,6 +28,9 @@ error() {
 cross_compile_arch() {
     local arch=$1
     log "Starting cross-compilation for $arch"
+
+    # Clean up any existing build artifacts
+    rm -rf tmp/
     
     # Run rb-sys-dock with the command inside the container
     log "Running rb-sys-dock container for $arch with custom command"
