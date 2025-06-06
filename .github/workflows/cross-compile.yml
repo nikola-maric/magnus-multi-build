@@ -45,7 +45,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: magnus_multi_build-${{ matrix.architecture }}
-        path: tmp/${{ matrix.architecture }}/stage/lib/magnus_multi_build/magnus_multi_build.so
+        path: lib/magnus_multi_build/magnus_multi_build.so
 
   create-pr:
     needs: cross-compile

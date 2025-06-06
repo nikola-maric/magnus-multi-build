@@ -33,35 +33,7 @@ cross_compile_arch() {
     
     # Run rb-sys-dock with the command inside the container
     log "Running rb-sys-dock container for $arch with custom command"
-    bundle exec rb-sys-dock --platform "$arch" -- bash -c "bundle install && bundle exec rake native:magnus_multi_build:$arch" || {
-        warn "rb-sys-dock command failed, but .so file might still be built"
-    }
-    
-    # Check if the .so file was created in staging directory
-    staging_so_file="tmp/$arch/stage/lib/magnus_multi_build/magnus_multi_build.so"
-    if [[ -f "$staging_so_file" ]]; then
-        log "Found compiled .so file for $arch at $staging_so_file"
-        
-        # Create architecture-specific directory
-        arch_dir="$LIB_DIR/$arch"
-        mkdir -p "$arch_dir"
-        log "Created directory: $arch_dir"
-        
-        # Move .so file to architecture-specific directory
-        mv "$staging_so_file" "$arch_dir/"
-        log "Moved magnus_multi_build.so to $arch_dir/"
-        
-        # Verify the file was copied
-        if [[ -f "$arch_dir/magnus_multi_build.so" ]]; then
-            log "✅ Successfully built and stored binary for $arch"
-        else
-            error "Failed to copy binary for $arch"
-            return 1
-        fi
-    else
-        error "No .so file found after compilation for $arch"
-        return 1
-    fi
+    bundle exec rb-sys-dock --platform "$arch" -- bash -c "bundle install && bundle exec rake compile native:magnus_multi_build:$arch"
 }
 
 # Main execution
@@ -88,7 +60,6 @@ main() {
     # Build for specified architecture
     if cross_compile_arch "$target_arch"; then
         log "✅ Successfully built for: $target_arch"
-        log "Binary is located at: $LIB_DIR/$target_arch/magnus_multi_build.so"
     else
         error "❌ Failed to build for: $target_arch"
         exit 1
