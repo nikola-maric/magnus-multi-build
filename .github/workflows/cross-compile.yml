@@ -35,9 +35,6 @@ jobs:
     - name: Install dependencies
       run: bundle install
       
-    - name: Make cross_compile.sh executable
-      run: chmod +x cross_compile.sh
-      
     - name: Run cross-compilation for ${{ matrix.architecture }}
       run: |
         RUBY_CC_VERSION=2.7.8 bundle exec rb-sys-dock --platform ${{ matrix.architecture }} -- bash -c \
