@@ -8,14 +8,14 @@ fn reverse_string(input: String) -> String {
 fn duckdb_query(query: String) -> Result<String, Error> {
     let conn = Connection::open_in_memory()
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB connection failed: {}", e)))?;
-    
+
     let sql = format!("SELECT {}", query);
     let mut stmt = conn.prepare(&sql)
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB prepare failed: {}", e)))?;
-    
+
     let mut rows = stmt.query([])
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB query failed: {}", e)))?;
-    
+
     if let Some(row) = rows.next()
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB row fetch failed: {}", e)))? {
         let result: String = row.get(0)
