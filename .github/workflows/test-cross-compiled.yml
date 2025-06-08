@@ -43,7 +43,7 @@ jobs:
         echo "Test passed: $actual"
 
   test-aarch64:
-    runs-on: ubuntu-22.04-arm64  # ARM aarch64
+    runs-on: ubuntu-22.04-arm  # ARM aarch64
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
