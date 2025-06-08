@@ -9,7 +9,7 @@ fn duckdb_query(query: String) -> Result<String, Error> {
     let conn = Connection::open_in_memory()
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB connection failed: {}", e)))?;
 
-    let sql = format!("SELECT {}", query);
+    let sql = format!("SELECT '{}'", query);
     let mut stmt = conn.prepare(&sql)
         .map_err(|e| Error::new(magnus::exception::runtime_error(), format!("DuckDB prepare failed: {}", e)))?;
 
