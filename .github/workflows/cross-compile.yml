@@ -82,6 +82,9 @@ jobs:
         BRANCH_NAME="${{ github.event.inputs.branch_name }}"
         if [ -z "$BRANCH_NAME" ]; then
           BRANCH_NAME="cross-compile-binaries-$(date +%Y%m%d-%H%M%S)"
+        else
+          # If branch name is provided, make it unique with timestamp to avoid conflicts
+          BRANCH_NAME="${BRANCH_NAME}-$(date +%Y%m%d-%H%M%S)"
         fi
         echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
         git checkout -b "$BRANCH_NAME"
