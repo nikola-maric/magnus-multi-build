@@ -41,3 +41,9 @@
 
 # Rust/Cargo
 target/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/

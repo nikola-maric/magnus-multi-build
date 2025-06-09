@@ -1,11 +1,11 @@
-version: '3.8'
-
 services:
   magnus-gem:
-    build: .
+    build:
+      context: .
+      args:
+        TARGET_ARCH: ${TARGET_ARCH:-x86_64-linux}
     volumes:
       - .:/app
-    working_dir: /app
     stdin_open: true
     tty: true
     environment:
