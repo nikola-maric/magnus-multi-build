@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   # once built, we can create PR to include it in the project
   # but because these live in their own folders and get built by this process, we don't actually use standard bundler/rubygems way of building native extensions
   # so we need to comment out this extensions part, because if we didn't we would get "Ignoring magnus_multi_build-0.1.0 because its extensions are not built. Try: gem pristine magnus_multi_build --version 0.1.0" message
-  spec.extensions = ['ext/magnus_multi_build/extconf.rb']
+  #spec.extensions = ["ext/magnus_multi_build/extconf.rb"]
 
   spec.add_dependency "rb_sys", "0.9.116"
 end

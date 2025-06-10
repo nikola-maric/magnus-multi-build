@@ -58,7 +58,7 @@ jobs:
         
     - name: Enable extensions in gemspec
       run: |
-        sed -i 's/# spec.extensions = \[.*/spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
+        sed -i '' 's/#spec.extensions = \[.*/spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
         
     - name: Install dependencies
       run: bundle install
@@ -118,7 +118,7 @@ jobs:
         
     - name: Comment out extensions in gemspec
       run: |
-        sed -i 's/spec.extensions = \[.*/# spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
+        sed -i 's/spec.extensions = \[.*/#spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
         
     - name: Add compiled binaries and updated gemspec
       run: |
