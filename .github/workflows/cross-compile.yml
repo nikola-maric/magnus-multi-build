@@ -51,8 +51,8 @@ jobs:
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
       with:
-        name: magnus_multi_build-${{ matrix.architecture }}
-        path: lib/magnus_multi_build/${{ matrix.architecture }}/magnus_multi_build.so
+        name: magnus_multi_build-${{ matrix.architecture == 'macos-latest' && 'aarch64-linux' || matrix.architecture }}
+        path: lib/magnus_multi_build/${{ matrix.architecture == 'macos-latest' && 'aarch64-linux' || matrix.architecture }}/magnus_multi_build.so
 
   create-pr:
     needs: cross-compile
