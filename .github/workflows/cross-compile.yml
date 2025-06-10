@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        architecture: [x86_64-linux, aarch64-linux]
+        architecture: [x86_64-linux, macos-latest]
     
     steps:
     - name: Checkout code
