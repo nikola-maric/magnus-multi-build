@@ -65,7 +65,7 @@ jobs:
       
     - name: Compile native extension for aarch64-linux
       run: |
-        docker compose build magnus-gem && docker compose run --rm magnus-gem bash -c "bundle install && bundle exec rake compile:aarch64-linux && mkdir -p lib/magnus_multi_build/aarch64-linux && mv -f lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/aarch64-linux/magnus_multi_build.so"
+        bundle install && bundle exec rake compile:aarch64-linux && mkdir -p lib/magnus_multi_build/aarch64-linux && mv -f lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/aarch64-linux/magnus_multi_build.so
       
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
