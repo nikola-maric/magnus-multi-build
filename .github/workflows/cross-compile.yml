@@ -39,11 +39,14 @@ jobs:
       run: |
         if [ "${{ matrix.architecture }}" = "macos-latest" ]; then
           PLATFORM="aarch64-linux"
+          RAKE_TARGET="aarch64-linux"
         else
           PLATFORM="${{ matrix.architecture }}"
+          RAKE_TARGET="${{ matrix.architecture }}"
         fi
+        mkdir -p lib/magnus_multi_build/${{ matrix.architecture }}
         RUBY_CC_VERSION=2.7.8 bundle exec rb-sys-dock --platform $PLATFORM -- bash -c \
-        "bundle install && bundle exec rake native:magnus_multi_build:${{ matrix.architecture }} && mv -f tmp/${{ matrix.architecture }}/stage/lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/${{ matrix.architecture }}/magnus_multi_build.so"
+        "bundle install && bundle exec rake native:magnus_multi_build:$RAKE_TARGET && mv -f tmp/$RAKE_TARGET/stage/lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/$RAKE_TARGET/magnus_multi_build.so"
       
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
