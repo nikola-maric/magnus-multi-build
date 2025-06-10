@@ -13,11 +13,8 @@ on:
         default: 'Add cross-compiled native extensions'
 
 jobs:
-  cross-compile:
+  compile-x86_64-linux:
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        architecture: [x86_64-linux, macos-latest]
     
     steps:
     - name: Checkout code
@@ -29,33 +26,55 @@ jobs:
         ruby-version: '2.7.8'
         bundler-cache: true
         
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
+    - name: Enable extensions in gemspec
+      run: |
+        sed -i 's/# spec.extensions = \[.*/spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
+        
     - name: Install dependencies
       run: bundle install
       
-    - name: Run cross-compilation for ${{ matrix.architecture }}
+    - name: Compile native extension for x86_64-linux
       run: |
-        if [ "${{ matrix.architecture }}" = "macos-latest" ]; then
-          PLATFORM="aarch64-linux"
-          RAKE_TARGET="aarch64-linux"
-        else
-          PLATFORM="${{ matrix.architecture }}"
-          RAKE_TARGET="${{ matrix.architecture }}"
-        fi
-        mkdir -p lib/magnus_multi_build/${{ matrix.architecture }}
-        RUBY_CC_VERSION=2.7.8 bundle exec rb-sys-dock --platform $PLATFORM -- bash -c \
-        "bundle install && bundle exec rake native:magnus_multi_build:$RAKE_TARGET && mv -f tmp/$RAKE_TARGET/stage/lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/$RAKE_TARGET/magnus_multi_build.so"
+        docker compose build magnus-gem && docker compose run --rm magnus-gem bash -c "bundle install && bundle exec rake compile:x86_64-linux && mkdir -p lib/magnus_multi_build/x86_64-linux && mv -f lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/x86_64-linux/magnus_multi_build.so"
       
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
       with:
-        name: magnus_multi_build-${{ matrix.architecture == 'macos-latest' && 'aarch64-linux' || matrix.architecture }}
-        path: lib/magnus_multi_build/${{ matrix.architecture == 'macos-latest' && 'aarch64-linux' || matrix.architecture }}/magnus_multi_build.so
+        name: magnus_multi_build-x86_64-linux
+        path: lib/magnus_multi_build/x86_64-linux/magnus_multi_build.so
+
+  compile-aarch64-linux:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '2.7.8'
+        bundler-cache: true
+        
+    - name: Enable extensions in gemspec
+      run: |
+        sed -i 's/# spec.extensions = \[.*/spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
+        
+    - name: Install dependencies
+      run: bundle install
+      
+    - name: Compile native extension for aarch64-linux
+      run: |
+        docker compose build magnus-gem && docker compose run --rm magnus-gem bash -c "bundle install && bundle exec rake compile:aarch64-linux && mkdir -p lib/magnus_multi_build/aarch64-linux && mv -f lib/magnus_multi_build/magnus_multi_build.so lib/magnus_multi_build/aarch64-linux/magnus_multi_build.so"
+      
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: magnus_multi_build-aarch64-linux
+        path: lib/magnus_multi_build/aarch64-linux/magnus_multi_build.so
 
   create-pr:
-    needs: cross-compile
+    needs: [compile-x86_64-linux, compile-aarch64-linux]
     runs-on: ubuntu-22.04
     
     steps:
@@ -97,9 +116,14 @@ jobs:
         echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
         git checkout -b "$BRANCH_NAME"
         
-    - name: Add compiled binaries
+    - name: Comment out extensions in gemspec
+      run: |
+        sed -i 's/spec.extensions = \[.*/# spec.extensions = ["ext\/magnus_multi_build\/extconf.rb"]/' magnus_multi_build.gemspec
+        
+    - name: Add compiled binaries and updated gemspec
       run: |
         git add lib/magnus_multi_build/*/magnus_multi_build.so
+        git add magnus_multi_build.gemspec
         
     - name: Check if there are changes to commit
       id: verify-changed-files
@@ -118,7 +142,8 @@ jobs:
         git commit -m "Add cross-compiled native extensions for multiple architectures
         
         - Built for x86_64-linux and aarch64-linux in parallel
-        - Generated using cross_compile.sh with rb-sys-dock
+        - Generated using bundle exec rake compile
+        - Commented out extensions in gemspec to use prebuilt binaries
         - Ready for multi-platform gem distribution
         
         🤖 Generated with GitHub Actions"
@@ -155,9 +180,9 @@ jobs:
         ## Build Process
         
         These binaries were generated using:
-        1. \`cross_compile.sh\` script with parallel builds
-        2. \`rb-sys-dock\` containerized cross-compilation
-        3. Magnus crate for Rust-Ruby bindings
+        1. \`bundle exec rake compile\` with native compilation
+        2. Magnus crate for Rust-Ruby bindings
+        3. Extensions temporarily enabled in gemspec during build
         
         ## Testing
         

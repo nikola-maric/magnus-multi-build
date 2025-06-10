@@ -8,6 +8,4 @@ GEMSPEC = Gem::Specification.load("magnus_multi_build.gemspec") || abort('Could 
 
 Rake::ExtensionTask.new("magnus_multi_build", GEMSPEC) do |ext|
   ext.lib_dir = "lib/magnus_multi_build"
-  ext.cross_compile = true
-  ext.cross_platform = %w[x86_64-linux aarch64-linux]
 end
